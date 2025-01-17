@@ -11,8 +11,6 @@ import (
 
 func createSchemaAndTables(db *sql.DB) {
 	ctx := context.Background()
-
-	// Check if schema exists
 	var schemaExists bool
 	err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'blog')`).Scan(&schemaExists)
 	if err != nil {
@@ -26,8 +24,6 @@ func createSchemaAndTables(db *sql.DB) {
 		}
 		fmt.Println("Schema 'blog' created.")
 	}
-
-	// Check and create tables if they don't exist
 	tables := []struct {
 		name   string
 		create string
@@ -77,8 +73,6 @@ func createSchemaAndTables(db *sql.DB) {
 				);`,
 		},
 	}
-
-	// Check if each table exists before attempting to create
 	for _, table := range tables {
 		var tableExists bool
 		err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'blog' AND tablename = $1)`, table.name).Scan(&tableExists)
