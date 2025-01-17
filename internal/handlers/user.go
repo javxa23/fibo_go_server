@@ -24,8 +24,9 @@ func RegisterUserHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)",
-			user.Name, user.Email, string(hashedPassword), "user")
+		_, err = db.Exec("INSERT INTO fiboblog.users (username, email, password_hash) VALUES ($1, $2, $3)",
+			user.Name, user.Email, string(hashedPassword))
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 			return
@@ -49,7 +50,7 @@ func LoginUserHandler(db *sql.DB) gin.HandlerFunc {
 
 		var hashedPassword string
 		var userID int
-		err := db.QueryRow("SELECT id, password FROM users WHERE email = $1", credentials.Email).Scan(&userID, &hashedPassword)
+		err := db.QueryRow("SELECT id, password FROM fiboblog.users WHERE email = $1", credentials.Email).Scan(&userID, &hashedPassword)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})

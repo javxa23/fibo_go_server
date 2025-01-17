@@ -5,6 +5,8 @@ import (
 	"fibo_go_server/internal/routes"
 	"log"
 
+	_ "github.com/lib/pq"
+
 	"github.com/gin-gonic/gin"
 )
 
