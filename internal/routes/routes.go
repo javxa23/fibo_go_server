@@ -1,28 +1,34 @@
 package routes
 
 import (
-	"fibo_go_server/config"
-	"fibo_go_server/internal/db"
-	"fibo_go_server/internal/handlers"
+	"fibo_go_server/internal/controllers"
+	"fibo_go_server/internal/utils"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(router *gin.Engine, cfg *config.Config) {
-	database, err := db.Connect(cfg.DatabaseURL)
+func SetupRouter() *gin.Engine {
+	r := gin.Default()
+	r.Use(cors.Default())
+	db, err := utils.InitDB()
 	if err != nil {
-		panic(err)
+		panic("Could not connect to the database")
 	}
 
-	// User routes
-	router.POST("/users/register", handlers.RegisterUserHandler(database))
-	router.POST("/users/login", handlers.LoginUserHandler(database))
+	r.POST("/signUp", controllers.SignUpUser(db))
+	r.POST("/login", controllers.LoginUser(db))
 
-	// Post routes
-	router.POST("/posts", handlers.CreatePostHandler(database))
+	r.POST("/createPost", controllers.CreatePost(db))
+	r.GET("/getPostsList", controllers.GetPostsList(db))
+	r.GET("/getPost", controllers.GetPostDetails(db))
 
-	// Comment routes
-	router.POST("/comments", handlers.AddCommentHandler(database))
-	router.GET("/posts/:postID/comments", handlers.GetCommentsHandler(database))
-	router.DELETE("/comments/:commentID", handlers.DeleteCommentHandler(database))
+	r.GET("/categories", controllers.GetCategories(db))
+
+	r.POST("/comment", controllers.CreateComment(db))
+
+	r.POST("/like", controllers.AddLike(db))
+
+	r.POST("/salary", controllers.CalculateSalary(db))
+	return r
 }

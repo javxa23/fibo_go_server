@@ -1,4 +1,4 @@
-package handlers
+package controllers
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func RegisterUserHandler(db *sql.DB) gin.HandlerFunc {
+func SignUpUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.User
 		if err := c.ShouldBindJSON(&user); err != nil {
@@ -17,15 +17,35 @@ func RegisterUserHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Hash the password before saving it
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM fiboblog.users WHERE username = $1", user.Username).Scan(&count)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check username"})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Username already taken"})
+			return
+		}
+
+		err = db.QueryRow("SELECT COUNT(*) FROM fiboblog.users WHERE email = $1", user.Email).Scan(&count)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check email"})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Email already taken"})
+			return
+		}
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO fiboblog.users (username, email, password_hash) VALUES ($1, $2, $3)",
-			user.Name, user.Email, string(hashedPassword))
+		_, err = db.Exec("INSERT INTO fiboblog.users (username, email, password) VALUES ($1, $2, $3)",
+			user.Username, user.Email, string(hashedPassword))
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
@@ -36,7 +56,7 @@ func RegisterUserHandler(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func LoginUserHandler(db *sql.DB) gin.HandlerFunc {
+func LoginUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var credentials struct {
 			Email    string `json:"email" binding:"required"`
@@ -50,7 +70,8 @@ func LoginUserHandler(db *sql.DB) gin.HandlerFunc {
 
 		var hashedPassword string
 		var userID int
-		err := db.QueryRow("SELECT id, password FROM fiboblog.users WHERE email = $1", credentials.Email).Scan(&userID, &hashedPassword)
+		var username string
+		err := db.QueryRow("SELECT id, username, password FROM fiboblog.users WHERE email = $1", credentials.Email).Scan(&userID, &username, &hashedPassword)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
@@ -66,8 +87,9 @@ func LoginUserHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Login successful",
-			"user_id": userID,
+			"message":  "Login successful",
+			"user_id":  userID,
+			"username": username,
 		})
 	}
 }

@@ -7,25 +7,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
-	Port        string
-	DatabaseURL string
+func LoadConfig() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 }
 
-func LoadConfig() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, relying on environment variables")
-	}
-
-	return &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-	}, nil
-}
-
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
+func GetDatabaseURL() string {
+	return os.Getenv("DATABASE_URL")
 }
